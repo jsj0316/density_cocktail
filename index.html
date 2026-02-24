@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>밀도 칵테일 만들기 🍹</title>
+    <!-- Tailwind CSS (디자인 프레임워크) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 귀여운 한글 폰트 (Jua) -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Jua', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            pink: '#FFE5EC',
+                            blue: '#E5F0FF',
+                            yellow: '#FFF5E5',
+                            green: '#E5FFE9',
+                            purple: '#F0E5FF',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFE5EC 0%, #E5F0FF 100%);
+            min-height: 100vh;
+        }
+        
+        /* 칵테일 잔 공통 스타일 */
+        .glass-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.4);
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            border-top: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05), inset 0 0 20px rgba(255,255,255,0.5);
+            display: flex;
+            flex-direction: column-reverse; /* 아래에서부터 쌓이도록 */
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* U자형 잔 */
+        .glass-u {
+            width: 180px;
+            height: 250px;
+            border-radius: 0 0 90px 90px;
+        }
+
+        /* V자형 (마티니) 잔 */
+        .glass-v {
+            width: 220px;
+            height: 200px;
+            clip-path: polygon(0 0, 100% 0, 60% 100%, 40% 100%);
+            border: none;
+            background: rgba(255, 255, 255, 0.5);
+            position: relative;
+        }
+        
+        /* 길쭉한 일자형 잔 */
+        .glass-straight {
+            width: 120px;
+            height: 300px;
+            border-radius: 0 0 15px 15px;
+        }
+
+        /* 액체 층 애니메이션 */
+        .liquid-layer {
+            width: 100%;
+            height: 0;
+            transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* 실패 시 탁해지는 효과 */
+        .liquid-fail {
+            background-color: #6d5b4b !important; /* 탁한 갈색 */
+            color: transparent !important;
+        }
+
+        /* 파티클 캔버스 */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* 페이드 인/아웃 애니메이션 */
+        .fade-in { animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-gray-800 pb-20">
+
+    <!-- Header -->
+    <header class="text-center py-6 bg-white/50 backdrop-blur-md shadow-sm mb-8">
+        <h1 class="text-4xl text-pink-500 drop-shadow-sm">🍹 밀도 칵테일 만들기 🍹</h1>
+        <p class="text-lg text-gray-600 mt-2">밀도가 큰 물질부터 차례대로 쌓아 예쁜 칵테일을 완성해봐요!</p>
+    </header>
+
+    <main class="container mx-auto px-4 max-w-4xl">
+        
+        <!-- ================= 단계 1: 재료 준비 ================= -->
+        <section id="phase1" class="fade-in bg-white/70 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/50">
+            <h2 class="text-2xl mb-6 text-center text-blue-500">🧪 1단계: 칵테일 재료 준비하기</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 입력 폼 -->
+                <div class="bg-pastel-blue p-6 rounded-2xl">
+                    <div class="mb-4">
+                        <label class="block text-lg mb-2">재료 이름</label>
+                        <input type="text" id="mat-name" placeholder="예: 시럽, 물, 식용유" class="w-full px-4 py-2 rounded-xl border-2 border-blue-200 focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div class="mb-4 flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-lg mb-2">밀도 (g/mL)</label>
+                            <input type="number" id="mat-density" step="0.1" placeholder="예: 1.0" class="w-full px-4 py-2 rounded-xl border-2 border-blue-200 focus:outline-none focus:border-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-lg mb-2">색상</label>
+                            <input type="color" id="mat-color" value="#ff9999" class="w-16 h-12 rounded-xl cursor-pointer border-2 border-blue-200">
+                        </div>
+                    </div>
+                    <button onclick="addMaterial()" class="w-full bg-blue-400 hover:bg-blue-500 text-white text-xl py-3 rounded-xl transition shadow-md active:scale-95">
+                        ➕ 재료 추가하기
+                    </button>
+                </div>
+
+                <!-- 추가된 재료 목록 -->
+                <div class="bg-pastel-pink p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-xl mb-4 text-pink-600">준비된 재료 목록 (<span id="mat-count">0</span>개)</h3>
+                    <div id="material-list" class="flex-1 overflow-y-auto space-y-3 max-h-60">
+                        <p class="text-gray-500 text-center mt-10">아직 추가된 재료가 없어요.<br>최소 3개의 재료를 만들어주세요!</p>
+                    </div>
+                    <button id="btn-start" onclick="goToPhase2()" disabled class="mt-6 w-full bg-gray-300 text-gray-500 text-xl py-3 rounded-xl transition shadow-md cursor-not-allowed">
+                        🚀 칵테일 만들기 시작 (3개 이상 필요)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 단계 2: 잔 선택 ================= -->
+        <section id="phase2" class="hidden fade-in bg-white/70 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/50 text-center">
+            <h2 class="text-2xl mb-8 text-purple-500">🍸 2단계: 마음에 드는 잔 선택하기</h2>
+            
+            <div class="flex flex-wrap justify-center gap-10">
+                <!-- U자형 -->
+                <div onclick="selectGlass('u')" class="cursor-pointer group hover:-translate-y-2 transition duration-300">
+                    <div class="glass-container glass-u mx-auto group-hover:border-purple-400 group-hover:shadow-purple-200 shadow-lg"></div>
+                    <p class="mt-4 text-xl group-hover:text-purple-600">둥근 잔 (U자형)</p>
+                </div>
+                <!-- V자형 -->
+                <div onclick="selectGlass('v')" class="cursor-pointer group hover:-translate-y-2 transition duration-300">
+                    <div class="glass-container glass-v mx-auto group-hover:bg-purple-100 shadow-lg" style="box-shadow: none; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); border-top: 4px solid rgba(255,255,255,0.8)"></div>
+                    <p class="mt-4 text-xl group-hover:text-purple-600">마티니 잔 (V자형)</p>
+                </div>
+                <!-- 일자형 -->
+                <div onclick="selectGlass('straight')" class="cursor-pointer group hover:-translate-y-2 transition duration-300">
+                    <div class="glass-container glass-straight mx-auto group-hover:border-purple-400 group-hover:shadow-purple-200 shadow-lg"></div>
+                    <p class="mt-4 text-xl group-hover:text-purple-600">길쭉한 잔 (일자형)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 단계 3: 칵테일 만들기 ================= -->
+        <section id="phase3" class="hidden fade-in bg-white/70 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/50">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl text-green-600">✨ 3단계: 밀도에 맞게 재료 넣기</h2>
+                <button onclick="resetGame()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-gray-700 transition">🔄 처음부터 다시</button>
+            </div>
+            
+            <p class="text-center text-lg mb-8 bg-yellow-100 p-3 rounded-xl inline-block w-full">
+                💡 <strong>힌트:</strong> 칵테일이 예쁘게 층을 이루려면 <span class="text-red-500">밀도가 가장 큰 액체부터</span> 아래에 넣어야 해요!
+            </p>
+
+            <div class="flex flex-col md:flex-row justify-center items-end gap-12 mt-4">
+                
+                <!-- 칵테일 잔 디스플레이 -->
+                <div class="flex flex-col items-center pb-8">
+                    <div id="game-glass" class="glass-container bg-white/30">
+                        <!-- 액체 층이 여기에 추가됨 -->
+                    </div>
+                    <div class="w-32 h-4 bg-gray-300 rounded-[50%] mt-2 opacity-50 shadow-xl blur-sm"></div>
+                </div>
+
+                <!-- 재료 버튼 패널 -->
+                <div class="bg-pastel-yellow p-6 rounded-2xl shadow-inner w-full md:w-1/2">
+                    <h3 class="text-xl mb-4 text-center">남은 재료</h3>
+                    <div id="ingredient-buttons" class="grid grid-cols-2 gap-4">
+                        <!-- JS로 버튼이 생성됨 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 커스텀 모달 (성공/실패/완료) -->
+    <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform scale-90 transition-transform duration-300" id="modal-content">
+            <div id="modal-icon" class="text-6xl mb-4">🚨</div>
+            <h2 id="modal-title" class="text-3xl mb-2">실패!</h2>
+            <p id="modal-desc" class="text-lg text-gray-600 mb-6">아래에 있는 액체보다 밀도가 커서 섞여버렸어요.</p>
+            <button id="modal-btn" class="bg-blue-500 hover:bg-blue-600 text-white text-xl px-8 py-3 rounded-xl transition shadow-md w-full">
+                다시 도전하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 파티클 캔버스 -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Footer 필수 삽입 -->
+    <footer class="fixed bottom-0 w-full text-center py-3 bg-white/80 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.05)] text-gray-600 font-sans z-40">
+        제작자 과학체육관 / 미래엔 올인원북(중학교 2학년 과학 밀도)
+    </footer>
+
+    <!-- JavaScript 로직 -->
+    <script>
+        // 전역 상태 변수
+        let materials = [];
+        let selectedGlassType = '';
+        let glassContents = []; // 잔에 들어간 액체 정보
+        let layerHeightPercentage = 0;
+
+        // ================= 1단계 로직 =================
+        function addMaterial() {
+            const nameInput = document.getElementById('mat-name');
+            const densityInput = document.getElementById('mat-density');
+            const colorInput = document.getElementById('mat-color');
+
+            const name = nameInput.value.trim();
+            const density = parseFloat(densityInput.value);
+            const color = colorInput.value;
+
+            if (!name || isNaN(density)) {
+                showModal('⚠️', '입력 오류', '재료 이름과 밀도를 정확히 입력해주세요.', '확인', hideModal);
+                return;
+            }
+
+            const material = { id: Date.now(), name, density, color };
+            materials.push(material);
+            
+            updateMaterialList();
+            
+            // 입력창 초기화
+            nameInput.value = '';
+            densityInput.value = '';
+            // colorInput.value = '#ff9999'; 랜덤 색상 추천
+            colorInput.value = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        }
+
+        function updateMaterialList() {
+            const listDiv = document.getElementById('material-list');
+            const countSpan = document.getElementById('mat-count');
+            const startBtn = document.getElementById('btn-start');
+
+            countSpan.innerText = materials.length;
+
+            if (materials.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500 text-center mt-10">아직 추가된 재료가 없어요.<br>최소 3개의 재료를 만들어주세요!</p>';
+            } else {
+                listDiv.innerHTML = '';
+                materials.forEach(mat => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-white p-3 rounded-lg shadow-sm animate-[fadeIn_0.3s_ease]';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 rounded-full border border-gray-200 shadow-inner" style="background-color: ${mat.color}"></div>
+                            <span class="text-lg">${mat.name}</span>
+                        </div>
+                        <span class="text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded">${mat.density} g/mL</span>
+                    `;
+                    listDiv.appendChild(item);
+                });
+            }
+
+            // 3개 이상일 때 시작 버튼 활성화
+            if (materials.length >= 3) {
+                startBtn.disabled = false;
+                startBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                startBtn.classList.add('bg-pink-500', 'hover:bg-pink-600', 'text-white');
+            }
+        }
+
+        function goToPhase2() {
+            document.getElementById('phase1').classList.add('hidden');
+            document.getElementById('phase2').classList.remove('hidden');
+        }
+
+        // ================= 2단계 로직 =================
+        function selectGlass(type) {
+            selectedGlassType = type;
+            document.getElementById('phase2').classList.add('hidden');
+            setupPhase3();
+            document.getElementById('phase3').classList.remove('hidden');
+        }
+
+        // ================= 3단계 로직 =================
+        function setupPhase3() {
+            glassContents = [];
+            layerHeightPercentage = 100 / materials.length;
+            
+            // 잔 모양 설정
+            const glass = document.getElementById('game-glass');
+            glass.className = `glass-container glass-${selectedGlassType} bg-white/30`;
+            glass.innerHTML = '';
+
+            // 재료 버튼 생성
+            const btnContainer = document.getElementById('ingredient-buttons');
+            btnContainer.innerHTML = '';
+            
+            // 순서를 섞어서 제공 (난이도)
+            const shuffled = [...materials].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(mat => {
+                const btn = document.createElement('button');
+                btn.id = `btn-mat-${mat.id}`;
+                btn.className = 'flex flex-col items-center justify-center p-3 rounded-xl bg-white shadow hover:shadow-md transition hover:-translate-y-1 border-2 border-transparent hover:border-blue-300';
+                btn.onclick = () => pourLiquid(mat, btn.id);
+                btn.innerHTML = `
+                    <div class="w-10 h-10 rounded-full mb-2 border-2 border-white shadow-md" style="background-color: ${mat.color}"></div>
+                    <span class="text-lg font-bold">${mat.name}</span>
+                    <span class="text-sm text-gray-500">${mat.density} g/mL</span>
+                `;
+                btnContainer.appendChild(btn);
+            });
+        }
+
+        function pourLiquid(material, buttonId) {
+            const glass = document.getElementById('game-glass');
+            
+            // 핵심 로직: 밀도 비교
+            // 이전에 넣은 액체가 있고, 방금 넣은 액체의 밀도가 이전 액체보다 크다면 실패!
+            const isFail = glassContents.length > 0 && material.density > glassContents[glassContents.length - 1].density;
+
+            glassContents.push(material);
+
+            // 버튼 비활성화
+            const btn = document.getElementById(buttonId);
+            btn.disabled = true;
+            btn.classList.add('opacity-40', 'cursor-not-allowed', 'scale-95');
+            btn.classList.remove('hover:-translate-y-1', 'hover:shadow-md');
+
+            // 새로운 레이어 DOM 생성
+            const layer = document.createElement('div');
+            layer.className = 'liquid-layer';
+            layer.style.backgroundColor = material.color;
+            layer.innerText = material.name;
+            glass.appendChild(layer);
+
+            // 애니메이션을 위해 약간의 지연 후 높이 부여
+            setTimeout(() => {
+                layer.style.height = `${layerHeightPercentage}%`;
+                
+                if (isFail) {
+                    // 실패 처리
+                    setTimeout(() => {
+                        triggerFail();
+                    }, 500); // 층이 차오른 직후 섞임
+                } else {
+                    // 성공 (하나 넣었을 때)
+                    if (glassContents.length === materials.length) {
+                        setTimeout(() => {
+                            triggerSuccess();
+                        }, 800);
+                    }
+                }
+            }, 50);
+        }
+
+        function triggerFail() {
+            // 모든 층을 탁한 색상으로 변경
+            const layers = document.querySelectorAll('.liquid-layer');
+            layers.forEach(l => l.classList.add('liquid-fail'));
+
+            showModal(
+                '😭', 
+                '앗, 섞여버렸어요!', 
+                `아래층 액체보다 <b>밀도가 큰 액체</b>를 부어서 칵테일이 망가졌어요.<br><br><span class="text-sm text-pink-600">Tip: 밀도가 가장 큰 액체부터 차례대로 넣어야 해요!</span>`, 
+                '다시 도전하기', 
+                () => {
+                    hideModal();
+                    setupPhase3(); // 잔 비우고 버튼 리셋
+                }
+            );
+        }
+
+        function triggerSuccess() {
+            fireConfetti();
+            showModal(
+                '🎉', 
+                '밀도 칵테일 완성!', 
+                '완벽해요! 밀도의 원리를 이용해 아름다운 칵테일을 만들었어요.<br>정말 잘했습니다!', 
+                '새로운 재료로 다시하기', 
+                () => {
+                    hideModal();
+                    resetGame(); // 아예 1단계로 리셋
+                }
+            );
+        }
+
+        // ================= 유틸리티 & UI =================
+        function resetGame() {
+            materials = [];
+            updateMaterialList();
+            document.getElementById('phase3').classList.add('hidden');
+            document.getElementById('phase2').classList.add('hidden');
+            document.getElementById('phase1').classList.remove('hidden');
+        }
+
+        function showModal(icon, title, desc, btnText, action) {
+            const modal = document.getElementById('modal');
+            const content = document.getElementById('modal-content');
+            
+            document.getElementById('modal-icon').innerHTML = icon;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerHTML = desc;
+            
+            const btn = document.getElementById('modal-btn');
+            btn.innerText = btnText;
+            btn.onclick = action;
+
+            modal.classList.remove('hidden');
+            // 애니메이션 프레임 보장
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-90');
+            });
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('modal');
+            const content = document.getElementById('modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-90');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 간단한 파티클(폭죽) 이펙트
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800', '#FF5722'];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 100,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 1) * 20,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4
+                });
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+                for (let p of particles) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.5; // 중력
+                    if (p.y < canvas.height) {
+                        active = true;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                if (active) requestAnimationFrame(render);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            render();
+        }
+    </script>
+</body>
+</html>
